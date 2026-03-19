@@ -13,7 +13,7 @@ function App() {
     setMessages(prev => [...prev, { role: "You", text: userMessage }]);
     setInput("");
 
-    const response = await fetch(fetch("https://ollama-chat-app-qxb4.onrender.com/chat"), {
+    const response = await fetch("https://ollama-chat-app-qxb4.onrender.com/chat", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
