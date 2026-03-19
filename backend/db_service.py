@@ -2,7 +2,7 @@ import psycopg2
 from dotenv import load_dotenv
 import os
 
-load_dotenv()  # MUST be before getenv
+load_dotenv()  
 
 def run_sql(query):
 

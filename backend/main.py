@@ -6,6 +6,10 @@ from fastapi.middleware.cors import CORSMiddleware
 import requests
 from db_service import run_sql
 import json
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI()
 app.add_middleware(
@@ -16,9 +20,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-OLLAMA_URL = "http://localhost:11434/api/generate"   
-MODEL = "deepseek-llm" 
-
 messages = []
 
 class ChatRequest(BaseModel):
@@ -26,47 +27,27 @@ class ChatRequest(BaseModel):
 
 def call_llm(prompt: str):
     response = requests.post(
-        OLLAMA_URL,
+        "https://openrouter.ai/api/v1/chat/completions",
+        headers={
+            "Authorization": f"Bearer {os.getenv('OPENROUTER_API_KEY')}",
+            "Content-Type": "application/json"
+        },
         json={
-            "model": MODEL,
-            "prompt": prompt,
-            "stream": False
+            "model": "openrouter/auto",
+            "messages": [
+                {"role": "user", "content": prompt}
+            ]
         }
     )
 
-    return response.json()["response"]
+    data = response.json()
 
-""" Normal chat post request 
-@app.post("/chat")
-def chat(request: ChatRequest):
+     # Handle errors safely
+    if "choices" not in data:
+        return f"LLM Error: {data}"
 
-    try:
-        user_message = request.message
+    return data["choices"][0]["message"]["content"]
 
-        messages.append({
-            "role": "user",
-            "content": user_message
-        })
-
-        response = ollama.chat(
-            model="llama3",
-            messages=messages
-        )
-
-        assistant_reply = response["message"]["content"]
-
-        messages.append({
-            "role": "assistant",
-            "content": assistant_reply
-        })
-
-        return {
-            "response": assistant_reply
-        }
-    except Exception as e:
-        return {"error": str(e)}
-
-"""
 @app.post("/chat")
 def chat(request: ChatRequest):
     user_message = request.message
