@@ -1,0 +1,40 @@
+name: First CI Pipeline
+
+on:
+    push:
+        branches: [develop]
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v3
+
+            # Backend
+            - name: Setup Python
+              uses: actions/setup-python@v4
+              with:
+                python-version: 3.11
+            
+            - name: Install backend dependencies
+              run: |
+                cd backend
+                pip install -r requirements.txt
+            
+            #Frontend
+            - name: Setup Node
+              uses: actions/setup-node@v3
+              with:
+                node-version: 20
+            
+            - name: Install frontend dependencies
+              run: |
+                cd frontend
+                npm install
+            
+            - name: Build frontend
+              run: |
+                cd frontend
+                npm run build
