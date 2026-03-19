@@ -1,7 +1,7 @@
 body {
   margin: 0;
   font-family: Arial, sans-serif;
-  background-color: #010102;
+  background-color: #000000;
 }
 
 .app {
@@ -28,7 +28,7 @@ body {
 
 /* User (right side) */
 .You {
-  background-color: #22c55e;
+  background-color: #1b03f5;
   color: white;
   margin-left: auto;
   text-align: right;
@@ -36,8 +36,8 @@ body {
 
 /* AI (left side) */
 .AI {
-  background-color: #1e293b;
-  color: white;
+  background-color: #ffffff;
+  color: rgb(129, 107, 33);
   margin-right: auto;
 }
 
