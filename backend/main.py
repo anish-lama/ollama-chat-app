@@ -1,13 +1,19 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-import requests
 from db_service import run_sql
+from dotenv import load_dotenv
+
+from fastapi.security import OAuth2PasswordBearer
+from jose import jwt, JWTError
+from auth import verify_password, create_access_token, SECRET_KEY, ALGORITHM, hash_password, create_refresh_token
+
+import requests
 import json
 import os
-from dotenv import load_dotenv
+
 
 load_dotenv()
 
@@ -19,6 +25,90 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+# login route
+@app.post("/login")
+def login(request: LoginRequest):
+    
+    result = run_sql(f"""
+        SELECT username, password FROM auth_users
+        WHERE username = '{request.username}'
+    """)
+
+    if not result:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    user = result[0]
+    
+    if not verify_password(request.password, user["password"]):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    token = create_access_token({"sub": user["username"]})
+    refresh_token = create_refresh_token({"sub": user["username"]})
+
+    return {
+            "access_token": token,
+            "refresh_token": refresh_token
+            }
+
+# auth dependency
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
+def get_current_user(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload.get("sub")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+# register users
+@app.post("/register")
+def register(request: LoginRequest):
+    hashed = hash_password(request.password)
+
+    try:
+        run_sql(f"""
+            INSERT INTO auth_users (username, password)
+            VALUES ('{request.username}', '{hashed}')
+        """)
+
+        return {"message": "User created"}
+    except Exception:
+        raise HTTPException(
+            status_code=400,
+            detail="Username already exists"
+        )
+    
+@app.post("/refresh")
+def refresh_token(refresh_token: str):
+
+    try:
+        payload = jwt.decode(refresh_token, SECRET_KEY, algorithms = [ALGORITHM])
+        username = payload.get("sub")
+
+        if username is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        
+        new_access_token = create_access_token({"sub": username})
+
+        return {"access_token": new_access_token}
+    
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+
+
+# protected route test
+#@app.get("/protected")
+#def protected(user = Depends(get_current_user)):
+ #   return {"message": f"Hello {user}"}
+
+
 
 messages = []
 
@@ -49,7 +139,10 @@ def call_llm(prompt: str):
     return data["choices"][0]["message"]["content"]
 
 @app.post("/chat")
-def chat(request: ChatRequest):
+def chat(request: ChatRequest, user: str = Depends(get_current_user)):
+    
+    print("Authenticated user:", user)
+
     user_message = request.message
 
     schema = """

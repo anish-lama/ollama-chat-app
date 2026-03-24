@@ -18,10 +18,17 @@ def run_sql(query):
 
     cursor.execute(query)
 
-    rows = cursor.fetchall()
-    columns = [desc[0] for desc in cursor.description]
+    if cursor.description:   # means SELECT
+        rows = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]
+
+        result = [dict(zip(columns, row)) for row in rows]
+    else:
+        result = None
+
+    conn.commit()
 
     cursor.close()
     conn.close()
 
-    return columns, rows
+    return result

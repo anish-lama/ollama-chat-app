@@ -1,58 +1,27 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
+import Login from "./Login";
+import Chat from "./Chat";
+import Register from "./Register";
 
-function App() {
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
+function App(){
+  const [token, setToken] = useState(null);
+  const [showLogin, setShowLogin] = useState(true);
 
-  const handleSend = async () => {
-    if (!input.trim()) return;
-
-    const userMessage = input;
-
-    setMessages(prev => [...prev, { role: "You", text: userMessage }]);
-    setInput("");
-
-    const response = await fetch("https://ollama-chat-app-qxb4.onrender.com/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({message: userMessage})
-    })
-
-    const data = await response.json();
-
-    setMessages(prev => 
-                [...prev, 
-                  { role: "AI", text: data.response }
-                ]);
-
-  };
+  useEffect(() => {
+    const saved = localStorage.getItem("token");
+    if (saved) setToken(saved);
+  }, []);
 
   return (
-    <div className="app">
-      <div className="chat-container">
-        {messages.map((msg, index) => (
-          <div key={index} className={`message ${msg.role}`}>
-            <div>{msg.text}</div>
-          </div>
-        ))}
-      </div>
-
-      <div className="input-container">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter"){
-              handleSend();
-            }
-          }}
-          placeholder="Type a message..."
-        />
-        <button onClick={handleSend}>Send</button>
-      </div>
+    <div>
+      {token ? (
+        <Chat token={token} setToken={setToken}/>
+      ) : showLogin ? (
+        <Login setToken={setToken} setShowLogin={setShowLogin} />
+      ) : (
+        <Register setShowLogin={setShowLogin} />
+      )}
     </div>
   );
 }
